@@ -1,0 +1,5 @@
+admin.kubeconfig
+ca.pem
+ca-key.pem
+admin.pem
+admin-key.pem

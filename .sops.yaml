@@ -1,0 +1,13 @@
+keys:
+  - &primary age1wpgl09ph4uh2xfy9l79qmwfrc0uzytchqm9mp3952jcmyj000qas4v4n62
+  - &utm-nixos1 age1zdhtk48rkne4g95a6mllrx3tuwt36jr3qdl0xp9h9wu7ffvy9szqhv2y3l
+  - &utm-nixos2 age1jngtn0kagl96na6zqgv57quuw45448yur75kpdkx67aw6ynvks5sfmw660
+  - &utm-nixos3 age1gwx34wstnrx45xxjs2khu0zyndg6tn5lv59ucd6vvqt7h2p6k50qfwj7um
+creation_rules:
+  - path_regex: secrets/secrets.yaml$
+    key_groups:
+    - age:
+      - *primary
+      - *utm-nixos1
+      - *utm-nixos2
+      - *utm-nixos3
