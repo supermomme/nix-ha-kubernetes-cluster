@@ -26,23 +26,13 @@ let
     }
   '';
 
-  etcds = [
-    { hostname = "utm-nixos1"; ip = "10.211.55.9"; }
-    { hostname = "utm-nixos2"; ip = "10.211.55.10"; }
-    { hostname = "utm-nixos3"; ip = "10.211.55.11"; }
-  ];
+  inherit (pkgs.callPackage ../../kube-resources.nix { }) clusterNodes;
 
-  controlPlanes = [
-    { hostname = "utm-nixos1"; ip = "10.211.55.9"; }
-    { hostname = "utm-nixos2"; ip = "10.211.55.10"; }
-  ];
-
-  workerNodes = [
-    { hostname = "utm-nixos2"; ip = "10.211.55.10"; }
-    { hostname = "utm-nixos3"; ip = "10.211.55.11"; }
-  ];
-
-
+  etcds = (builtins.filter (c: c.etcd or false) clusterNodes);
+  apiservers = (builtins.filter (c: (c.controlPlane or false) || (c.apiserver or false)) clusterNodes);
+  controllerManagers = (builtins.filter (c: (c.controlPlane or false) || (c.controllerManager or false)) clusterNodes);
+  schedulers = (builtins.filter (c: (c.controlPlane or false) || (c.scheduler or false)) clusterNodes);
+  workerNodes = (builtins.filter (c: c.workerNode or false) clusterNodes);
 in
 # Only use Nix to generate the certificate generation ( :) ) script.
   # That way, we avoid certificates ending up in the world-readable Nix store
@@ -99,6 +89,7 @@ pkgs.writeShellScriptBin "generate-certs" ''
   genCa ".kubernetes.ca" ${mkCsr "kubernetes-ca" { cn = "kubernetes-ca"; }}
 
   ### etcds
+  echo "etcd certs:"
   ${lib.concatLines (map (etcd: ''
     genCert ".etcd.ca" ".${etcd.hostname}.etcd.serverCert" "server" ${ mkCsr "etcd-server" {
       cn = "etcd";
@@ -108,42 +99,55 @@ pkgs.writeShellScriptBin "generate-certs" ''
       cn = "etcd-peer";
       altNames = [ "127.0.0.1" "${etcd.hostname}" "${etcd.ip}" ];
     }}
-    echo "etcd ${etcd.hostname} ${etcd.ip}"
+    echo "  etcd ${etcd.hostname} ${etcd.ip}"
   '') etcds)}
 
-
-  ### controlPlanes
-  ${lib.concatLines (map (controlPlane: ''
-    genCert ".etcd.ca" ".${controlPlane.hostname}.etcd.apiserverCert" "client" ${mkCsr "etcd-client" {
+  ### apiservers
+  echo "apiserver certs:"
+  ${lib.concatLines (map (apiserver: ''
+    genCert ".etcd.ca" ".${apiserver.hostname}.etcd.apiserverCert" "client" ${mkCsr "etcd-client" {
       cn = "etcd-client";
-      altNames = [ "${controlPlane.hostname}" "${controlPlane.ip}" ];
+      altNames = [ "${apiserver.hostname}" "${apiserver.ip}" ];
     }}
-    genCert ".kubernetes.ca" ".${controlPlane.hostname}.kubernetes.apiserver.serverCert" "server" ${mkCsr "kube-api-server" {
+    genCert ".kubernetes.ca" ".${apiserver.hostname}.kubernetes.apiserver.serverCert" "server" ${mkCsr "kube-api-server" {
       cn = "kubernetes";
       altNames =
-        [ "${controlPlane.hostname}" "${controlPlane.ip}" ] ++
+        [ "${apiserver.hostname}" "${apiserver.ip}" ] ++
         # getAltNames "loadbalancer" ++ # TODO: loadbalancers
         [ "kubernetes" "kubernetes.default" "kubernetes.default.svc" "kubernetes.default.svc.cluster" "kubernetes.svc.cluster.local" ];
     }}
-    genCert ".kubernetes.ca" ".${controlPlane.hostname}.kubernetes.apiserver.kubeletClientCert" "server" ${mkCsr "kube-api-server-kubelet-client" {
+    genCert ".kubernetes.ca" ".${apiserver.hostname}.kubernetes.apiserver.kubeletClientCert" "server" ${mkCsr "kube-api-server-kubelet-client" {
       cn = "kube-api-server";
-      altNames = [ "${controlPlane.hostname}" "${controlPlane.ip}" ];
+      altNames = [ "${apiserver.hostname}" "${apiserver.ip}" ];
       organization = "system:masters";
     }}
-    genCert ".kubernetes.ca" ".${controlPlane.hostname}.kubernetes.controllerManagerCert" "client" ${mkCsr "kube-controller-manager" {
+    echo "  apiserver ${apiserver.hostname} ${apiserver.ip}"
+  '') apiservers)}
+
+  ## controllerManagers
+  echo "controllerManager certs:"
+  ${lib.concatLines (map (controllerManager: ''
+    genCert ".kubernetes.ca" ".${controllerManager.hostname}.kubernetes.controllerManagerCert" "client" ${mkCsr "kube-controller-manager" {
       cn = "system:kube-controller-manager";
       organization = "system:kube-controller-manager";
     }}
-    genCert ".kubernetes.ca" ".${controlPlane.hostname}.kubernetes.schedulerCert" "client" ${mkCsr "kube-scheduler" rec {
+    echo "  controllerManager ${controllerManager.hostname} ${controllerManager.ip}"
+  '') controllerManagers)}
+
+  ## schedulers
+  echo "scheduler certs:"
+  ${lib.concatLines (map (scheduler: ''
+    genCert ".kubernetes.ca" ".${scheduler.hostname}.kubernetes.schedulerCert" "client" ${mkCsr "kube-scheduler" rec {
       cn = "system:kube-scheduler";
       organization = cn;
     }}
 
-    echo "controlPlane ${controlPlane.hostname} ${controlPlane.ip}"
-  '') controlPlanes)}
+    echo "  scheduler ${scheduler.hostname} ${scheduler.ip}"
+  '') schedulers)}
 
 
   ### workerNodes
+  echo "workerNode certs:"
   ${lib.concatLines (map (workerNode: ''
     genCert ".etcd.ca" ".${workerNode.hostname}.etcd.flannelCert" "client" ${mkCsr "etcd-client" {
       cn = "flannel";
@@ -159,7 +163,7 @@ pkgs.writeShellScriptBin "generate-certs" ''
       organization = "system:nodes";
       altNames = [ "${workerNode.hostname}" "${workerNode.ip}" ];
     }}
-    echo "worker node ${workerNode.hostname} ${workerNode.ip}"
+    echo "  worker node ${workerNode.hostname} ${workerNode.ip}"
   '') workerNodes)}
   
 
@@ -180,21 +184,21 @@ pkgs.writeShellScriptBin "generate-certs" ''
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-credentials admin \
       --client-certificate=admin.pem \
       --client-key=admin-key.pem \
-      --embed-certs=true
+      --embed-certs=true > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-cluster virt \
       --certificate-authority=ca.pem \
       --server=https://10.211.55.9:6443 \
-      --embed-certs=true
+      --embed-certs=true > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-cluster virt2 \
       --certificate-authority=ca.pem \
       --server=https://10.211.55.10:6443 \
-      --embed-certs=true
+      --embed-certs=true > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-context virt \
       --user admin \
-      --cluster virt
+      --cluster virt > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-context virt2 \
       --user admin \
-      --cluster virt2
+      --cluster virt2 > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config use-context virt > /dev/null
   rm ca.pem ca-key.pem admin.pem admin-key.pem
 

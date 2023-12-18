@@ -9,25 +9,17 @@ in
       type = types.str;
       description = "IP of node";
     };
-    globalSecretFile = mkOption {
-      type = types.path;
-      description = "Secret File with CA";
-      default = ../secrets/secrets.yaml;
-    };
-    globalSecretPath = mkOption {
+    etcdCa = mkOption {
       type = types.str;
-      description = "Global Secret Path-Prefix";
-      default = "etcd";
+      default = "etcd/ca";
     };
-    privateSecretFile = mkOption {
-      type = types.path;
-      description = "Secret File with server cert and peer cert";
-      default = ../secrets/secrets.yaml;
-    };
-    privateSecretPath = mkOption {
+    serverCert = mkOption {
       type = types.str;
-      description = "Private Secret Path-Prefix";
-      default = "etcd";
+      default = "etcd/serverCert";
+    };
+    peerCert = mkOption {
+      type = types.str;
+      default = "etcd/peerCert";
     };
     cluster = mkOption {
       type = types.listOf types.attrs;
@@ -40,26 +32,11 @@ in
       etcd
     ];
 
-    sops.secrets."${cfg.globalSecretPath}/ca/cert" = {
-      owner = "etcd";
-      sopsFile = cfg.globalSecretFile;
-    };
-    sops.secrets."${cfg.privateSecretPath}/serverCert/cert" = {
-      owner = "etcd";
-      sopsFile = cfg.privateSecretFile;
-    };
-    sops.secrets."${cfg.privateSecretPath}/serverCert/key" = {
-      owner = "etcd";
-      sopsFile = cfg.privateSecretFile;
-    };
-    sops.secrets."${cfg.privateSecretPath}/peerCert/cert" = {
-      owner = "etcd";
-      sopsFile = cfg.privateSecretFile;
-    };
-    sops.secrets."${cfg.privateSecretPath}/peerCert/key" = {
-      owner = "etcd";
-      sopsFile = cfg.privateSecretFile;
-    };
+    sops.secrets."${cfg.etcdCa}/cert" = { owner = "etcd"; };
+    sops.secrets."${cfg.serverCert}/cert" = { owner = "etcd"; };
+    sops.secrets."${cfg.serverCert}/key" = { owner = "etcd"; };
+    sops.secrets."${cfg.peerCert}/cert" = { owner = "etcd"; };
+    sops.secrets."${cfg.peerCert}/key" = { owner = "etcd"; };
 
     services.etcd = {
       enable = true;
@@ -75,14 +52,14 @@ in
       clientCertAuth = true;
       peerClientCertAuth = true;
 
-      certFile = config.sops.secrets."${cfg.privateSecretPath}/serverCert/cert".path;
-      keyFile = config.sops.secrets."${cfg.privateSecretPath}/serverCert/key".path;
+      certFile = config.sops.secrets."${cfg.serverCert}/cert".path;
+      keyFile = config.sops.secrets."${cfg.serverCert}/key".path;
 
-      peerCertFile = config.sops.secrets."${cfg.privateSecretPath}/peerCert/cert".path;
-      peerKeyFile = config.sops.secrets."${cfg.privateSecretPath}/peerCert/key".path;
+      peerCertFile = config.sops.secrets."${cfg.peerCert}/cert".path;
+      peerKeyFile = config.sops.secrets."${cfg.peerCert}/key".path;
 
-      peerTrustedCaFile = config.sops.secrets."${cfg.globalSecretPath}/ca/cert".path;
-      trustedCaFile = config.sops.secrets."${cfg.globalSecretPath}/ca/cert".path;
+      peerTrustedCaFile = config.sops.secrets."${cfg.etcdCa}/cert".path;
+      trustedCaFile = config.sops.secrets."${cfg.etcdCa}/cert".path;
     };
     networking.firewall.allowedTCPPorts = [ 2379 2380 ];
 
