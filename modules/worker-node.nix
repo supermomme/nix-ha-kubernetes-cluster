@@ -1,29 +1,6 @@
 { lib, config, pkgs, ... }:
 let
   cfg = config.workerNode;
-  corednsPolicies = map
-    (r: {
-      apiVersion = "abac.authorization.kubernetes.io/v1beta1";
-      kind = "Policy";
-      spec = {
-        user = "system:coredns";
-        namespace = "*";
-        resource = r;
-        readonly = true;
-      };
-    }) [ "endpoints" "services" "pods" "namespaces" ]
-  ++ lib.singleton
-    {
-      apiVersion = "abac.authorization.kubernetes.io/v1beta1";
-      kind = "Policy";
-      spec = {
-        user = "system:coredns";
-        namespace = "*";
-        resource = "endpointslices";
-        apiGroup = "discovery.k8s.io";
-        readonly = true;
-      };
-    };
 in
 {
   options.workerNode = with lib; {
