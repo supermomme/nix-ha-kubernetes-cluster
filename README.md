@@ -28,6 +28,7 @@ I use UTM-VMs with nixos (aarch64-linux)
 - [ ] reconsider temporary ca and cert files
 - [ ] reconsider cert expiry
 - [ ] fix etcd wait issue during initial startup
+- [ ] seperate modules and example
 
 ## (Quick)-start (WIP)
 
@@ -35,6 +36,7 @@ I use UTM-VMs with nixos (aarch64-linux)
 - your sops-secret file is located in secrets/secrets.yaml
 - all nodes have this secret as the default provider
 - .gitignore contains `admin.kubeconfig` `ca.pem` `ca-key.pem` `admin.pem` and `admin-key.pem`
+- IPs of nodes do not change (static-ish)
 
 ### kube-resources.nix
 create a `kube-resources.nix`. adjust to your nodes and requirements
