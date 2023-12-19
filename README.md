@@ -29,6 +29,7 @@ I use UTM-VMs with nixos (aarch64-linux)
 - [ ] reconsider cert expiry
 - [ ] fix etcd wait issue during initial startup
 - [ ] seperate example into repo [supermomme/nix-ha-kubernetes-cluster-example](https://github.com/supermomme/nix-ha-kubernetes-cluster-example)
+- [ ] research and feature: add kubernetes resources into cluster (deployments, services, ...)
 
 ## (Quick)-start (WIP)
 
