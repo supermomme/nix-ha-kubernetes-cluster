@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , cfssl ? pkgs.cfssl
 , lib ? pkgs.lib
+, clusterNodes ? (import ../../kube-resources.nix).clusterNodes
 }:
 let
   inherit (pkgs.callPackage ./utils.nix { }) mkCsr;
@@ -25,8 +26,6 @@ let
       }
     }
   '';
-
-  inherit (pkgs.callPackage ../../kube-resources.nix { }) clusterNodes;
 
   etcds = (builtins.filter (c: c.etcd or false) clusterNodes);
   apiservers = (builtins.filter (c: (c.controlPlane or false) || (c.apiserver or false)) clusterNodes);

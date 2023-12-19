@@ -1,8 +1,4 @@
-{ lib, ... }:
-let
-
-in
-rec {
+{
   clusterNodes = [
     {
       hostname = "utm-nixos1";
