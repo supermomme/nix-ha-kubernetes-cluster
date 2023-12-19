@@ -1,0 +1,4 @@
+{ }:
+{
+  generateCerts = import ./scripts/certs;
+}
