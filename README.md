@@ -16,10 +16,13 @@ I use UTM-VMs with nixos (aarch64-linux)
   - worker-node (kubelet, flannel, coredns)
 
 ## TODO
-- create apiserver loadbalancer
-- maybe port 443 loadbalancer
-- bundle everything in single module, that other repos can use this
-- investigate apiserver-error `Failed to remove file watch, it may have been deleted` during cert-rotation
+- [ ] create apiserver loadbalancer
+- [ ] maybe port 443 loadbalancer?
+- [x] put resources into single location (e.g. kube-resources.nix)
+- [x] bundle everything in single module
+- [ ] expose module, that other repos can use it
+- [ ] investigate apiserver-error `Failed to remove file watch, it may have been deleted` during cert-rotation
+- [ ] make proper readme :)
 
 ## Further Resources
 
