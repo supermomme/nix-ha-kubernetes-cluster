@@ -16,8 +16,14 @@ I use UTM-VMs with nixos (aarch64-linux)
   - worker-node (kubelet, flannel, coredns)
 
 ## TODOs
-- [ ] create apiserver loadbalancer
-- [ ] maybe port 443 loadbalancer?
+- [x] etcd
+- [x] apisever
+- [x] controllerManager
+- [x] scheduler
+- [x] workerNode with kublet, flannel and coredns
+- [x] cert creation script into sops
+- [ ] loadbalancer for apiserver 
+- [ ] consider idea: loadbalancer for traefik?
 - [x] put resources into single location (e.g. kube-resources.nix)
 - [x] bundle everything in single module
 - [ ] expose module, that other repos can use it
@@ -29,7 +35,7 @@ I use UTM-VMs with nixos (aarch64-linux)
 - [ ] reconsider cert expiry
 - [ ] fix etcd wait issue during initial startup
 - [ ] seperate example into repo [supermomme/nix-ha-kubernetes-cluster-example](https://github.com/supermomme/nix-ha-kubernetes-cluster-example)
-- [ ] research and feature: add kubernetes resources into cluster (deployments, services, ...)
+- [ ] research: add kubernetes resources into cluster (deployments, services, ...)
 - [ ] check pin nixpkgs in all modules
 
 ## (Quick)-start (WIP)
