@@ -34,8 +34,6 @@ let
   schedulers = (builtins.filter (c: (c.controlPlane or false) || (c.scheduler or false)) clusterNodes);
   workerNodes = (builtins.filter (c: c.workerNode or false) clusterNodes);
 in
-# Only use Nix to generate the certificate generation ( :) ) script.
-  # That way, we avoid certificates ending up in the world-readable Nix store
 pkgs.writeShellScriptBin "generate-certs" ''
   set -e
 
@@ -57,7 +55,6 @@ pkgs.writeShellScriptBin "generate-certs" ''
   }
 
   # Generates a certificate signed by CA
-  # (convention over configuration).
   function genCert() {
     caYamlPath=$1
     certYamlPath=$2
@@ -112,6 +109,7 @@ pkgs.writeShellScriptBin "generate-certs" ''
     genCert ".kubernetes.ca" ".${apiserver.hostname}.kubernetes.apiserver.serverCert" "server" ${mkCsr "kube-api-server" {
       cn = "kubernetes";
       altNames =
+        # virtualIP of loadbalancer
         [ "${apiserver.hostname}" "${apiserver.ip}" ] ++
         # getAltNames "loadbalancer" ++ # TODO: loadbalancers
         [ "kubernetes" "kubernetes.default" "kubernetes.default.svc" "kubernetes.default.svc.cluster" "kubernetes.svc.cluster.local" ];
@@ -158,7 +156,7 @@ pkgs.writeShellScriptBin "generate-certs" ''
       cn = "system:kube-proxy";
       organization = "system:node-proxier";
     }}
-    genCert ".kubernetes.ca" ".${workerNode.hostname}.kubernetes.kubeletCert" "peer" ${mkCsr "kubelet-${workerNode.hostname}" { # single worker TODO: map
+    genCert ".kubernetes.ca" ".${workerNode.hostname}.kubernetes.kubeletCert" "peer" ${mkCsr "kubelet-${workerNode.hostname}" {
       cn = "system:node:${workerNode.hostname}";
       organization = "system:nodes";
       altNames = [ "${workerNode.hostname}" "${workerNode.ip}" ];
@@ -193,12 +191,19 @@ pkgs.writeShellScriptBin "generate-certs" ''
       --certificate-authority=ca.pem \
       --server=https://10.211.55.10:6443 \
       --embed-certs=true > /dev/null
+  ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-cluster virt3 \
+      --certificate-authority=ca.pem \
+      --server=https://10.211.55.11:6443 \
+      --embed-certs=true > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-context virt \
       --user admin \
       --cluster virt > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-context virt2 \
       --user admin \
       --cluster virt2 > /dev/null
+  ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config set-context virt3 \
+      --user admin \
+      --cluster virt3 > /dev/null
   ${pkgs.kubectl}/bin/kubectl --kubeconfig admin.kubeconfig config use-context virt > /dev/null
   rm ca.pem ca-key.pem admin.pem admin-key.pem
 

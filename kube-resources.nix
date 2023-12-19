@@ -10,9 +10,9 @@ rec {
       etcd = true;
 
       controlPlane = true;
-      # apiserver = true;
-      # controllerManager = true;
-      # scheduler = true;
+      # apiserver = true; # part of controlPlane
+      # controllerManager = true; # part of controlPlane
+      # scheduler = true; # part of controlPlane
 
     }
     {
@@ -21,9 +21,9 @@ rec {
       etcd = true;
 
       controlPlane = true;
-      # apiserver = true;
-      # controllerManager = true;
-      # scheduler = true;
+      # apiserver = true; # part of controlPlane
+      # controllerManager = true; # part of controlPlane
+      # scheduler = true; # part of controlPlane
 
       workerNode = true;
     }

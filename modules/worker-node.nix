@@ -11,7 +11,7 @@ in
     };
     kubeApiHostname = mkOption {
       type = types.str;
-      description = "IP of node";
+      description = "Hostname/IP of apiserver or loadbalancer";
     };
 
     etcdCa = mkOption {

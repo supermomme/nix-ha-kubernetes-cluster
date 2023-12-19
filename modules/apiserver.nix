@@ -1,6 +1,6 @@
 { lib, config, pkgs, ... }:
 let
-  cfg = config.controlPlane;
+  cfg = config.apiserver;
   corednsPolicies = map
     (r: {
       apiVersion = "abac.authorization.kubernetes.io/v1beta1";
@@ -26,8 +26,8 @@ let
     };
 in
 {
-  options.controlPlane = with lib; {
-    enable = mkEnableOption "enable etcd module";
+  options.apiserver = with lib; {
+    enable = mkEnableOption "enable apiserver module";
     selfIP = mkOption {
       type = types.str;
       description = "IP of node";
@@ -52,14 +52,6 @@ in
     apiserverServerCert = mkOption {
       type = types.str;
       default = "utm-nixos1/kubernetes/apiserver/serverCert";
-    };
-    controllerManagerCert = mkOption {
-      type = types.str;
-      default = "utm-nixos1/kubernetes/controllerManagerCert";
-    };
-    schedulerCert = mkOption {
-      type = types.str;
-      default = "utm-nixos1/kubernetes/schedulerCert";
     };
   };
   config = lib.mkIf cfg.enable {
@@ -107,32 +99,6 @@ in
 
       tlsCertFile = config.sops.secrets."${cfg.apiserverServerCert}/cert".path;
       tlsKeyFile = config.sops.secrets."${cfg.apiserverServerCert}/key".path;
-    };
-
-    ### controller-manager
-    sops.secrets."${cfg.controllerManagerCert}/cert" = { owner = "kubernetes"; };
-    sops.secrets."${cfg.controllerManagerCert}/key" = { owner = "kubernetes"; };
-    services.kubernetes.controllerManager = {
-      enable = true;
-      kubeconfig = {
-        caFile = config.sops.secrets."${cfg.kubernetesCa}/cert".path;
-        certFile = config.sops.secrets."${cfg.controllerManagerCert}/cert".path;
-        keyFile = config.sops.secrets."${cfg.controllerManagerCert}/key".path;
-        server = "https://${cfg.selfIP}:6443";
-      };
-    };
-
-    ### scheduler
-    sops.secrets."${cfg.schedulerCert}/cert" = { owner = "kubernetes"; };
-    sops.secrets."${cfg.schedulerCert}/key" = { owner = "kubernetes"; };
-    services.kubernetes.scheduler = {
-      enable = true;
-      kubeconfig = {
-        caFile = config.sops.secrets."${cfg.kubernetesCa}/cert".path;
-        certFile = config.sops.secrets."${cfg.schedulerCert}/cert".path;
-        keyFile = config.sops.secrets."${cfg.schedulerCert}/key".path;
-        server = "https://${cfg.selfIP}:6443";
-      };
     };
   };
 }
