@@ -15,14 +15,111 @@ I use UTM-VMs with nixos (aarch64-linux)
   - etcd
   - worker-node (kubelet, flannel, coredns)
 
-## TODO
+## TODOs
 - [ ] create apiserver loadbalancer
 - [ ] maybe port 443 loadbalancer?
 - [x] put resources into single location (e.g. kube-resources.nix)
 - [x] bundle everything in single module
 - [ ] expose module, that other repos can use it
+- [x] expose script, that other repos can use it
 - [ ] investigate apiserver-error `Failed to remove file watch, it may have been deleted` during cert-rotation
 - [ ] make proper readme :)
+- [ ] variable secretFile
+- [ ] reconsider temporary ca and cert files
+- [ ] reconsider cert expiry
+- [ ] fix etcd wait issue during initial startup
+
+## (Quick)-start (WIP)
+
+### assumption:
+- your sops-secret file is located in secrets/secrets.yaml
+- all nodes have this secret as the default provider
+- .gitignore contains `admin.kubeconfig` `ca.pem` `ca-key.pem` `admin.pem` and `admin-key.pem`
+
+### kube-resources.nix
+create a `kube-resources.nix`. adjust to your nodes and requirements
+```nix
+{
+  clusterNodes = [
+    {
+      hostname = "host1";
+      ip = "<ip of host1>";
+      etcd = true;
+    }
+    {
+      hostname = "host2";
+      ip = "<ip of host2>";
+      etcd = true;
+      controlPlane = true;
+      workerNode = true;
+    }
+    {
+      hostname = "host3";
+      ip = "<ip of host3>";
+      etcd = true;
+      workerNode = true;
+    }
+  ];
+}
+```
+
+### generate-certs script
+put the cert-generation script into your `shell.nix` like this:
+```nix
+{ pkgs ? import <nixpkgs> {} }: pkgs.mkShell {
+  buildInputs = with pkgs.buildPackages; [
+    (pkgs.writeShellScriptBin "generate-certs" ''
+      $(nix-build --no-out-link --arg clusterNodes "(import ./kube-resources.nix).clusterNodes" https://github.com/supermomme/nix-ha-kubernetes-cluster/archive/main.tar.gz -A generateCerts)/bin/generate-certs
+    '')
+  ];
+}
+```
+
+call the `generate-certs`-script via nix-shell: `nix-shell --command make-certs`
+
+### kubeCluster module
+```nix
+# configuration.nix
+{ config, lib, pkgs, modulesPath, inputs, ... }: {
+  imports = [
+    # ...
+    ../../modules/kube-cluster.nix # TBD
+  ];
+  networking.hostName = "host1"; # Define your hostname.
+  kubeCluster = {
+    enable = true;
+  };
+  # ...
+}
+```
+
+### kubeCluster module via flakes
+```nix
+# flake.nix
+{
+  # TBD
+}
+```
+
+```nix
+# configuration.nix
+{ config, lib, pkgs, modulesPath, inputs, ... }: {
+  imports = [
+    # ...
+    # TBD
+  ];
+  networking.hostName = "host1"; # Define your hostname.
+  kubeCluster = {
+    enable = true;
+  };
+  # ...
+}
+```
+
+### rebuild
+
+the etcd nodes should be build at the same time, because they wait for each other
+
 
 ## Further Resources
 
