@@ -26,8 +26,8 @@ I use UTM-VMs with nixos (aarch64-linux)
 - [ ] consider idea: loadbalancer for traefik?
 - [x] put resources into single location (e.g. kube-resources.nix)
 - [x] bundle everything in single module
-- [ ] expose module, that other repos can use it
-- [x] expose script, that other repos can use it
+- [x] expose module, that other repos can use it
+- [ ] expose script, that other repos can use it
 - [ ] investigate apiserver-error `Failed to remove file watch, it may have been deleted` during cert-rotation
 - [ ] make proper readme :)
 - [ ] variable secretFile
