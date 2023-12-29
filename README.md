@@ -37,6 +37,10 @@ I use UTM-VMs with nixos (aarch64-linux)
 - [ ] seperate example into repo [supermomme/nix-ha-kubernetes-cluster-example](https://github.com/supermomme/nix-ha-kubernetes-cluster-example)
 - [ ] research: add kubernetes resources into cluster (deployments, services, ...)
 - [ ] check pin nixpkgs in all modules
+- [ ] documentation: proper quickstart
+- [ ] documentation: etcd startup
+- [ ] documentation: add etcd member
+- [ ] cluster and node-failure monitoring (maybe separated project?)
 
 ## (Quick)-start (WIP)
 
@@ -137,4 +141,6 @@ This project is heavily inspired by [justinas/nixos-ha-kubernetes](https://githu
 
 - [justinas/nixos-ha-kubernetes](https://github.com/justinas/nixos-ha-kubernetes/tree/73809dda76f5d9d27b0ebb6f7f7ce19d5b380038)
 - https://kubernetes.io/docs/concepts/architecture/
-- https://etcd.io/docs/v3.4/op-guide/clustering/
+- https://etcd.io/docs/v3.5/op-guide/clustering/
+- https://etcd.io/docs/v3.5/op-guide/clustering/#static
+- https://etcd.io/docs/v3.5/op-guide/runtime-configuration/

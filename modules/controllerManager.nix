@@ -1,4 +1,4 @@
-{ lib, config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 let
   cfg = config.controllerManager;
 in

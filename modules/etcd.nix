@@ -1,4 +1,5 @@
-{ lib, config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
+# { config, pkgs ? import <nixpkgs> {}, lib ? pkgs.lib }:
 let
   cfg = config.etcd;
 in
