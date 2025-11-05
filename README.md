@@ -1,139 +1,58 @@
 # nix-ha-kubernetes-cluster
 
-HA Kubernete Cluster for learning purpose
+HA Kubernete Cluster for learning purpose (homelab)
+
+## The Idea
+This repository generates NixOS configurations and creates bootable ISO files for a Kubernetes cluster.
+
+**Key Features:**
+- Boot ISOs to automatically create a cluster
+- Minimal persistent storage (only for essential data like etcd)
+- Everything else runs in tmpfs for performance
+- Worker nodes don't need disks - just RAM - completely ephemeral
+- Future goal: Auto-scaling with PXE boot (nodes boot when needed, drain and shutdown when idle)
 
 ## Current configuration
-I use UTM-VMs with nixos (aarch64-linux)
-- utm-nixos1
+I use Proxmox-VMs with nixos (x86_64)
+- controlplane0
   - etcd
   - control-plane (apiserver, controller-manager, scheduler)
-- utm-nixos2
-  - etcd
-  - control-plane (apiserver, controller-manager, scheduler)
-  - worker-node (kubelet, flannel, coredns)
-- utm-nixos3
-  - etcd
-  - worker-node (kubelet, flannel, coredns)
+  - worker (kubelet, kube-proxy, flannel, coredns)
 
 ## TODOs
-- [x] etcd
-- [x] apisever
-- [x] controllerManager
-- [x] scheduler
-- [x] workerNode with kublet, flannel and coredns
-- [x] cert creation script into sops
-- [ ] loadbalancer for apiserver 
-- [ ] consider idea: loadbalancer for traefik?
-- [x] put resources into single location (e.g. kube-resources.nix)
-- [x] bundle everything in single module
-- [x] expose module, that other repos can use it
-- [ ] expose script, that other repos can use it
-- [ ] investigate apiserver-error `Failed to remove file watch, it may have been deleted` during cert-rotation
-- [ ] make proper readme :)
-- [ ] variable secretFile
-- [ ] reconsider temporary ca and cert files
+- [x] bootable iso
+- [x] basic etcd
+- [x] basic apisever
+- [x] basic controllerManager
+- [x] basic scheduler
+- [x] basic kublet
+- [x] basic flannel
+- [x] basic coredns
+- [x] basic cert creation script
+- [ ] split controlplane and worker into modules
+- [ ] streamline kube-resources into config. create certs and isos based on that config
+- [ ] improve cert management
 - [ ] reconsider cert expiry
-- [ ] fix etcd wait issue during initial startup
-- [ ] seperate example into repo [supermomme/nix-ha-kubernetes-cluster-example](https://github.com/supermomme/nix-ha-kubernetes-cluster-example)
-- [ ] research: add kubernetes resources into cluster (deployments, services, ...)
-- [ ] check pin nixpkgs in all modules
+- [ ] loadbalancer for apiserver
+- [ ] consider idea: loadbalancer for reverse proxy?
+- [ ] make proper readme :)
 - [ ] documentation: proper quickstart
-- [ ] documentation: etcd startup
-- [ ] documentation: add etcd member
-- [ ] cluster and node-failure monitoring (maybe separated project?)
+- [ ] documentation: add controlplane member
+- [ ] research: add kubernetes resources into cluster (deployments, services, ...)
 
 ## (Quick)-start (WIP)
+TBD
 
-### assumption:
-- your sops-secret file is located in secrets/secrets.yaml
-- all nodes have this secret as the default provider
-- .gitignore contains `admin.kubeconfig` `ca.pem` `ca-key.pem` `admin.pem` and `admin-key.pem`
-- IPs of nodes do not change (static-ish)
+###### some commands i need to save somewhere xD
+```zsh
+nix develop --command bash -c "generate-certs-etcd"
+nix develop --command bash -c "generate-certs-kubernetes"
 
-### kube-resources.nix
-create a `kube-resources.nix`. adjust to your nodes and requirements
-```nix
-{
-  clusterNodes = [
-    {
-      hostname = "host1";
-      ip = "<ip of host1>";
-      etcd = true;
-    }
-    {
-      hostname = "host2";
-      ip = "<ip of host2>";
-      etcd = true;
-      controlPlane = true;
-      workerNode = true;
-    }
-    {
-      hostname = "host3";
-      ip = "<ip of host3>";
-      etcd = true;
-      workerNode = true;
-    }
-  ];
-}
+nix build .#nixosConfigurations.controlplane0.config.system.build.isoImage
+# nix run nixpkgs#nixos-generators -- --format iso --flake .#controlplane0 -o result
+
+scp result/iso/*.iso root@10.0.0.60:/var/lib/vz/template/iso/nixos.iso
 ```
-
-### generate-certs script
-put the cert-generation script into your `shell.nix` like this:
-```nix
-{ pkgs ? import <nixpkgs> {} }: pkgs.mkShell {
-  buildInputs = with pkgs.buildPackages; [
-    (pkgs.writeShellScriptBin "generate-certs" ''
-      $(nix-build --no-out-link --arg clusterNodes "(import ./kube-resources.nix).clusterNodes" https://github.com/supermomme/nix-ha-kubernetes-cluster/archive/main.tar.gz -A generateCerts)/bin/generate-certs
-    '')
-  ];
-}
-```
-
-call the `generate-certs`-script via nix-shell: `nix-shell --command make-certs`
-
-### kubeCluster module
-```nix
-# configuration.nix
-{ config, lib, pkgs, modulesPath, inputs, ... }: {
-  imports = [
-    # ...
-    ../../modules/kube-cluster.nix # TBD
-  ];
-  networking.hostName = "host1"; # Define your hostname.
-  kubeCluster = {
-    enable = true;
-  };
-  # ...
-}
-```
-
-### kubeCluster module via flakes
-```nix
-# flake.nix
-{
-  # TBD
-}
-```
-
-```nix
-# configuration.nix
-{ config, lib, pkgs, modulesPath, inputs, ... }: {
-  imports = [
-    # ...
-    # TBD
-  ];
-  networking.hostName = "host1"; # Define your hostname.
-  kubeCluster = {
-    enable = true;
-  };
-  # ...
-}
-```
-
-### rebuild
-
-the etcd nodes should be build at the same time, because they wait for each other
-
 
 ## Further Resources
 
